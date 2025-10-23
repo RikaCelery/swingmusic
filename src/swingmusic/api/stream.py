@@ -2,6 +2,7 @@
 Contains all the track routes.
 """
 
+import functools
 from io import BytesIO
 import os
 from pathlib import Path
@@ -52,21 +53,25 @@ class SendTrackFileQuery(BaseModel):
         description="The container format of the audio file. Options: mp3, aac, flac, webm, ogg",
     )
 lock = RLock()
-def send_ncm_file_auto_decode(filepath: str,trackhash:str):
+@functools.lru_cache(maxsize=20)
+def get_decoded_ncm_stream(filepath: str) -> tuple[bytes,str]:
     lock.acquire()
     try:
         ncmfile = NeteaseCloudMusicFile(filepath)
         ncmfile.decrypt()
         ncmfile._decrypt_music_data()
-        byte_stream = BytesIO(ncmfile._music_data)
-        return send_file(
-            byte_stream,
-            download_name=Path(filepath).name,
-            mimetype=f"audio/{ncmfile.metadata.music_metadata.format}",
-            as_attachment=True,
-        )
+        return ncmfile._music_data,ncmfile.metadata.music_metadata.format
     finally:
         lock.release()
+def send_ncm_file_auto_decode(filepath: str,trackhash:str):
+    music_data,fmt = get_decoded_ncm_stream(filepath)
+    byte_stream = BytesIO(music_data)
+    return send_file(
+        byte_stream,
+        download_name=Path(filepath).name,
+        mimetype=f"audio/{fmt}",
+        as_attachment=True,
+    )
 
 @api.get("/<trackhash>/legacy")
 def send_track_file_legacy(path: TrackHashSchema, query: SendTrackFileQuery):
