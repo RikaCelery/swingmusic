@@ -184,7 +184,7 @@ def get_tags(filepath: str|pathlib.Path, config: UserConfig) -> dict:
         ncmfile = NeteaseCloudMusicFile(filepath)
         ncmfile.decrypt()
         ncmfile._decrypt_music_data()
-        tags = TinyTag.get(ncmfile._music_data)
+        tags = TinyTag.get(file_obj=BytesIO(ncmfile._music_data))
     else:
         tags = TinyTag.get(filepath)
 
