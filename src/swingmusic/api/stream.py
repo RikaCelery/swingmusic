@@ -2,6 +2,7 @@
 Contains all the track routes.
 """
 
+from io import BytesIO
 import os
 from pathlib import Path
 import tempfile
@@ -53,17 +54,15 @@ class SendTrackFileQuery(BaseModel):
 lock = RLock()
 def send_ncm_file_auto_decode(filepath: str,trackhash:str):
     lock.acquire()
-    path=None
     try:
         ncmfile = NeteaseCloudMusicFile(filepath)
         ncmfile.decrypt()
-        path = f"/tmp/{trackhash}.mp3"
-        if not os.path.exists(path):
-            path = ncmfile.dump_music(path)
+        ncmfile._decrypt_music_data()
+        byte_stream = BytesIO(ncmfile._music_data)
         return send_file(
-            Path(path),
+            byte_stream,
+            download_name=Path(filepath).name,
             mimetype=f"audio/{ncmfile.metadata.music_metadata.format}",
-            conditional=True,
             as_attachment=True,
         )
     finally:
