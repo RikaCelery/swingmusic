@@ -12,7 +12,9 @@ from pydantic import BaseModel, Field
 from flask_openapi3 import APIBlueprint, Tag
 from swingmusic.api.apischemas import TrackHashSchema
 from swingmusic.lib.transcoder import start_transcoding
-from flask import request, Response, send_from_directory
+from flask import request, Response, send_from_directory,send_file
+from ncmdump import NeteaseCloudMusicFile
+from multiprocessing import RLock
 from swingmusic.lib.trackslib import get_silence_paddings
 
 from swingmusic.store.tracks import TrackStore
@@ -48,7 +50,24 @@ class SendTrackFileQuery(BaseModel):
         "mp3",
         description="The container format of the audio file. Options: mp3, aac, flac, webm, ogg",
     )
-
+lock = RLock()
+def send_ncm_file_auto_decode(filepath: str,trackhash:str):
+    lock.acquire()
+    path=None
+    try:
+        ncmfile = NeteaseCloudMusicFile(filepath)
+        ncmfile.decrypt()
+        path = f"/tmp/{trackhash}.mp3"
+        if not os.path.exists(path):
+            path = ncmfile.dump_music(path)
+        return send_file(
+            Path(path),
+            mimetype=f"audio/{ncmfile.metadata.music_metadata.format}",
+            conditional=True,
+            as_attachment=True,
+        )
+    finally:
+        lock.release()
 
 @api.get("/<trackhash>/legacy")
 def send_track_file_legacy(path: TrackHashSchema, query: SendTrackFileQuery):
@@ -82,6 +101,11 @@ def send_track_file_legacy(path: TrackHashSchema, query: SendTrackFileQuery):
                     break
 
     if track is not None:
+        try:
+            if os.path.splitext(filepath)[1]==".ncm":
+                return send_ncm_file_auto_decode(filepath,trackhash)
+        except Exception as e:
+            print(e)
         audio_type = guess_mime_type(filepath)
         return send_from_directory(
             Path(filepath).parent,

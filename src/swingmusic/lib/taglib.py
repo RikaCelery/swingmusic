@@ -9,6 +9,7 @@ from typing import Any
 import pendulum
 from PIL import Image, UnidentifiedImageError
 from tinytag import TinyTag
+from ncmdump import NeteaseCloudMusicFile
 
 from swingmusic.config import UserConfig
 from swingmusic.settings import Defaults, Paths
@@ -69,8 +70,12 @@ def extract_thumb(filepath: str, webp_path: str, overwrite=False, paths:Paths=No
 
         if img_size > 0:
             return True
-
-    album_art = parse_album_art(filepath)
+    if os.path.splitext(filepath)[1] == ".ncm":
+        ncmfile = NeteaseCloudMusicFile(filepath)
+        ncmfile.decrypt()
+        album_art = ncmfile._cover_data
+    else:
+        album_art = parse_album_art(filepath)
 
     if album_art is not None:
         try:
@@ -157,7 +162,7 @@ def extract_artist_title(filename: str, config: UserConfig):
     return ParseData(artist, title, config)
 
 
-def get_tags(filepath: str, config: UserConfig) -> dict:
+def get_tags(filepath: str|pathlib.Path, config: UserConfig) -> dict:
     """
     Parse tags from an audio file.
     If tag entries are missing, try getting them from the file name
@@ -175,7 +180,14 @@ def get_tags(filepath: str, config: UserConfig) -> dict:
         raise FileNotFoundError(filepath)
 
     last_mod = round(filepath.stat().st_mtime)
-    tags = TinyTag.get(filepath)
+    if os.path.splitext(filepath)[1] == ".ncm":
+        ncmfile = NeteaseCloudMusicFile(filepath)
+        ncmfile.decrypt()
+        p=ncmfile.dump_music(f"/tmp/{filename}.mp3")
+        tags = TinyTag.get(p)
+        os.remove(p)
+    else:
+        tags = TinyTag.get(filepath)
 
     if hasattr(tags, "other"):
         other = tags.other

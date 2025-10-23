@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 
-FILES = ["flac", "mp3", "wav", "m4a", "ogg", "wma", "opus", "alac", "aiff"]
+FILES = ["flac", "mp3", "wav", "m4a", "ogg", "wma", "opus", "alac", "aiff","ncm"]
 SUPPORTED_FILES = tuple(f".{file}" for file in FILES)
 
 # TODO: Move this to config
