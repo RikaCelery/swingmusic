@@ -68,8 +68,11 @@ def get_image(tracks: list[Track], paths=None):
     """
 
     for track in tracks:
-        extracted = extract_thumb(track.filepath, track.albumhash + ".webp", paths)
-
+        try:
+            extracted = extract_thumb(track.filepath, track.albumhash + ".webp", paths)
+        except Exception as e:
+            log.error(e)
+            return
         if extracted:
             return
 

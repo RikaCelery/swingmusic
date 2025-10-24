@@ -1,10 +1,10 @@
 FROM python:3.11-slim
-WORKDIR /app/swingmusic
+WORKDIR /app/
 
 # Copy the files in the current dir into the container
 # copy wheelhouse and client
-COPY wheels wheels
-COPY client /config/client
+# COPY wheels wheels
+# COPY client /config/client
 
 
 LABEL "author"="swing music"
@@ -16,7 +16,10 @@ RUN apt-get update && apt-get install -y gcc git libev-dev python3-dev ffmpeg li
 apt-get clean && \
 rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --find-links=wheels/ swingmusic
-Run rm -rf /app/swingmusic/wheels
+RUN pip install uv
+COPY . /app/swingmusic
+WORKDIR /app/swingmusic
+RUN ls /app/swingmusic
+RUN uv sync 
 
-ENTRYPOINT ["python", "-m", "swingmusic", "--host", "0.0.0.0", "--config", "/config", "--client", "/config/client"]
+ENTRYPOINT ["uv", "run", "run.py", "--host", "0.0.0.0", "--config", "/config", "--client", "/config/client"]
