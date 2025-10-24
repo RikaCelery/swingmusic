@@ -80,7 +80,7 @@ def extract_thumb(filepath: str, webp_path: str, overwrite=False, paths:Paths=No
     if album_art is not None:
         try:
             img = Image.open(BytesIO(album_art))
-        except (UnidentifiedImageError, OSError):
+        except (UnidentifiedImageError, OSError, Exception):
             return False
 
         try:

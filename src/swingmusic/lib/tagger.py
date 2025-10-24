@@ -1,6 +1,7 @@
 import os
 from functools import partial
 from multiprocessing import Pool, cpu_count
+import traceback
 
 from swingmusic import settings
 from swingmusic.config import UserConfig
@@ -82,6 +83,8 @@ class IndexTracks:
                 )
             except FileNotFoundError:
                 continue
+            except Exception as e:
+                traceback.print_exception(e)
 
     @staticmethod
     def filter_modded():
